@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>3.16AM😭</title>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<style>
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  .bar:hover {
+    fill: orange;
+  }
+
+  .d3-tip {
+    line-height: 1;
+    font-weight: bold;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 2px;
+  }
+
+  .d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<script>
+
+var data = [
+  {"Ecosystem": "Forest", "Above Ground Current Storage": 311.0, "Above Ground Potential Storage": 514.3, "Below Ground Current Storage": 1676.5, "Below Ground Potential Storage": 1804.1},
+  {"Ecosystem": "Savanna", "Above Ground Current Storage": 17.0, "Above Ground Potential Storage": 48.2, "Below Ground Current Storage": 191.9, "Below Ground Potential Storage": 221.4},
+  {"Ecosystem": "Shrubland", "Above Ground Current Storage": 11.0, "Above Ground Potential Storage": 31.7, "Below Ground Current Storage": 319.4, "Below Ground Potential Storage": 349.1},
+  {"Ecosystem": "Grassland", "Above Ground Current Storage": 5.0, "Above Ground Potential Storage": 23.0, "Below Ground Current Storage": 695.8, "Below Ground Potential Storage": 718.8},
+  {"Ecosystem": "Wetlands", "Above Ground Current Storage": 1.4, "Above Ground Potential Storage": 2.5, "Below Ground Current Storage": 43.8, "Below Ground Potential Storage": 44.6},
+  {"Ecosystem": "Desert", "Above Ground Current Storage": 0.2, "Above Ground Potential Storage": 0.6, "Below Ground Current Storage": 137.7, "Below Ground Potential Storage": 143.0},
+  {"Ecosystem": "Blue Carbon Ecosystems", "Above Ground Current Storage": 2.9, "Above Ground Potential Storage": 3.17, "Below Ground Current Storage": 16.5, "Below Ground Potential Storage": 0},
+  {"Ecosystem": "Continental Margins", "Above Ground Current Storage": 895.8, "Above Ground Potential Storage": 0, "Below Ground Current Storage": 503.0, "Below Ground Potential Storage": 0},
+  {"Ecosystem": "Open Ocean", "Above Ground Current Storage": 37807.0, "Above Ground Potential Storage": 0, "Below Ground Current Storage": 1608.9, "Below Ground Potential Storage": 0}
+];
+
+
+var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = 1920 - margin.left - margin.right,
+    height = 1080 - margin.top - margin.bottom;
+
+var x0 = d3.scaleBand().rangeRound([0, width]).paddingInner(0.1);
+var x1 = d3.scaleBand();
+var y = d3.scaleLinear().range([height, 0]);
+var xAxis = d3.axisBottom(x0),
+    yAxis = d3.axisLeft(y);
+
+var div = d3.select("body").append("div")
+    .attr("class", "d3-tip")
+    .style("opacity", 0);
+
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+
+var categoriesNames = data.map(function(d) { return d.Ecosystem; });
+var rateNames = Object.keys(data[0]).filter(function(key) { return key !== "Ecosystem"; });
+
+x0.domain(categoriesNames);
+x1.domain(rateNames).rangeRound([0, x0.bandwidth()]);
+y.domain([0, d3.max(data, function(d) { return d3.max(rateNames, function(key) { return d[key]; }); })]);
+
+var ecosystem = svg.selectAll(".ecosystem")
+    .data(data)
+    .enter().append("g")
+    .attr("class", "ecosystem")
+    .attr("transform", function(d) { return "translate(" + x0(d.Ecosystem) + ",0)"; });
+
+rateNames.forEach(function(rateName) {
+    ecosystem.selectAll(".bar." + rateName)
+        .data(function(d) { return [{key: rateName, value: d[rateName]}]; })
+        .enter().append("rect")
+        .attr("class", "bar " + rateName)
+        .attr("x", function(d) { return x1(d.key); })
+        .attr("width", x1.bandwidth())
+        .attr("y", function(d) { return y(d.value); })
+        .attr("height", function(d) { return height - y(d.value); })
+        .on("mouseover", function(event, d) {
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div.html(d.key + "<br/>" + d.value)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+});
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis)
+    .selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)" );
+
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis)
+    .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 5)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Value");
+
+</script>
+</body>
+</html>

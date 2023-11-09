@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ecosystem Data Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: sans-serif; }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-align: center;
+            visibility: hidden;
+        }
+        .shape {
+            cursor: pointer;
+        }
+        .legend {
+            font-size: 0.8em;
+        }
+        .legend rect {
+            stroke-width: 2;
+            stroke: black;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chart"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+var data = [
+{"Ecosystem":"Forest","AboveGroundCurrent":311.0,"AboveGroundPotential":514.3,"BelowGroundCurrent":1676.5,"BelowGroundPotential":1804.1},
+    {"Ecosystem":"Savanna","AboveGroundCurrent":17.0,"AboveGroundPotential":48.2,"BelowGroundCurrent":191.9,"BelowGroundPotential":221.4},
+    {"Ecosystem":"Shrubland","AboveGroundCurrent":11.0,"AboveGroundPotential":31.7,"BelowGroundCurrent":319.4,"BelowGroundPotential":349.1},
+    {"Ecosystem":"Grassland","AboveGroundCurrent":5.0,"AboveGroundPotential":23.0,"BelowGroundCurrent":695.8,"BelowGroundPotential":718.8},
+    {"Ecosystem":"Wetlands","AboveGroundCurrent":1.4,"AboveGroundPotential":2.5,"BelowGroundCurrent":43.8,"BelowGroundPotential":44.6},
+    {"Ecosystem":"Desert","AboveGroundCurrent":0.2,"AboveGroundPotential":0.6,"BelowGroundCurrent":137.7,"BelowGroundPotential":143.0},
+    {"Ecosystem":"Blue Carbon Ecosystems","AboveGroundCurrent":2.9,"AboveGroundPotential":3.17,"BelowGroundCurrent":16.5,"BelowGroundPotential":0},
+    {"Ecosystem":"Continental Margins","AboveGroundCurrent":895.8,"AboveGroundPotential":0,"BelowGroundCurrent":503.0,"BelowGroundPotential":0},
+    {"Ecosystem":"Open Ocean","AboveGroundCurrent":37807.0,"AboveGroundPotential":0,"BelowGroundCurrent":1608.9,"BelowGroundPotential":0}
+];
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", window.innerWidth)
+    .attr("height", window.innerHeight);
+
+var tooltip = d3.select("#tooltip");
+
+
+    function randomCoords() {
+    return {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+    };
+}
+
+function animateShape(shape, size) {
+    var duration = 5000 + size;
+    shape.transition()
+        .duration(duration)
+        .ease(d3.easeLinear)
+        .attr("transform", function() {
+            var coords = randomCoords();
+            return "translate(" + coords.x + "," + coords.y + ")";
+        })
+        .on("end", function() { animateShape(d3.select(this), size); });
+}
+
+var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+var radiusScale = d3.scaleSqrt()
+    .domain([0, d3.max(data, function(d) { return d.AboveGroundCurrent; })])
+    .range([10, 100]);
+
+var symbolSizeScale = d3.scaleSqrt()
+    .domain([0, d3.max(data, function(d) { return d.AboveGroundPotential; })])
+    .range([100, 1000]);
+
+var symbol = d3.symbol().size(function(d) { return symbolSizeScale(d.AboveGroundPotential); });
+
+svg.selectAll(".circle")
+    .data(data)
+    .enter().append("circle")
+    .attr("class", "shape")
+    .attr("r", function(d) { return radiusScale(d.AboveGroundCurrent); })
+    .attr("fill", function(d, i) { return colorScale(i); })
+    .each(function(d) { animateShape(d3.select(this), radiusScale(d.AboveGroundCurrent)); });
+
+svg.selectAll(".triangle")
+    .data(data)
+    .enter().append("path")
+    .attr("class", "shape")
+    .attr("d", symbol.type(d3.symbolTriangle))
+    .attr("fill", function(d, i) { return colorScale(i); })
+    .each(function(d) { animateShape(d3.select(this), symbolSizeScale(d.AboveGroundPotential)); });
+
+svg.selectAll(".shape")
+    .on("mouseover", function(event, d) {
+        tooltip.html(d.Ecosystem + "<br/>" + "Above Ground: " + d.AboveGroundCurrent)
+            .style("visibility", "visible")
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY + 10) + "px");
+    })
+    .on("mousemove", function(event) {
+        tooltip.style("left", (event.pageX + 10) + "px")
+               .style("top", (event.pageY + 10) + "px");
+    })
+    .on("mouseout", function() {
+        tooltip.style("visibility", "hidden");
+    });
+
+// Add a legend
+var legend = svg.selectAll(".legend")
+    .data(data)
+    .enter().append("g")
+    .attr("class", "legend")
+    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+legend.append("rect")
+    .attr("x", window.innerWidth - 18)
+    .attr("width", 18)
+    .attr("height", 18)
+    .style("fill", function(d, i) { return colorScale(i); });
+
+legend.append("text")
+    .attr("x", window.innerWidth - 24)
+    .attr("y", 9)
+    .attr("dy", ".35em")
+    .style("text-anchor", "end")
+    .text(function(d) { return d.Ecosystem; });
+
+</script>
+
+</body>
+</html>
